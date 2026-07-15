@@ -77,6 +77,18 @@ services:
       - ALL
     security_opt:
       - no-new-privileges:true
+    healthcheck:
+      test:
+        - CMD
+        - /bin/wget
+        - --quiet
+        - --timeout=3
+        - --output-document=/dev/null
+        - http://127.0.0.1:9100/metrics
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
 
 volumes:
   vpsmonitor-data:
