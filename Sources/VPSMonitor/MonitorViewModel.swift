@@ -32,7 +32,7 @@ final class MonitorViewModel: ObservableObject {
     @Published private(set) var isLaunchingSSH = false
     @Published private(set) var sshLaunchErrorMessage: String?
 
-    private var timer: Timer?
+    private var refreshTask: Task<Void, Never>?
     private var sshConsecutiveFailures = 0
     private var coolifyConsecutiveFailures = 0
     // Use a stable suite so Debug, Release and future .app builds share settings.
@@ -191,9 +191,17 @@ final class MonitorViewModel: ObservableObject {
     }
 
     private func scheduleTimer() {
-        timer?.invalidate()
-        timer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
-            Task { @MainActor in await self?.refresh() }
+        refreshTask?.cancel()
+        refreshTask = Task { @MainActor [weak self] in
+            while !Task.isCancelled {
+                do {
+                    try await Task.sleep(nanoseconds: 60_000_000_000)
+                } catch {
+                    return
+                }
+                guard let self, !Task.isCancelled else { return }
+                await self.refresh()
+            }
         }
     }
 }
