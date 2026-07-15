@@ -1,0 +1,82 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    cpus: 0.5
+    mem_limit: 256m
+    mem_reservation: 128m
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 3000
+      DATA_DIR: /data
+      NODE_EXPORTER_URL: http://node-exporter:9100/metrics
+      APP_ORIGIN: ${APP_ORIGIN:?APP_ORIGIN is required}
+      SERVER_NAME: ${SERVER_NAME:-VPS}
+      ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH:?ADMIN_PASSWORD_HASH is required}
+      SESSION_SECRET: ${SESSION_SECRET:?SESSION_SECRET is required}
+      SESSION_TTL_SECONDS: ${SESSION_TTL_SECONDS:-2592000}
+      LOGIN_GLOBAL_RATE_LIMIT: ${LOGIN_GLOBAL_RATE_LIMIT:-100}
+      SAMPLER_INTERVAL_MS: ${SAMPLER_INTERVAL_MS:-60000}
+      HISTORY_LIMIT: ${HISTORY_LIMIT:-60}
+      COOLIFY_BASE_URL: ${COOLIFY_BASE_URL:?COOLIFY_BASE_URL is required}
+      COOLIFY_API_TOKEN: ${COOLIFY_API_TOKEN:?COOLIFY_API_TOKEN is required}
+      COOLIFY_DASHBOARD_URL: ${COOLIFY_DASHBOARD_URL:?COOLIFY_DASHBOARD_URL is required}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:?VAPID_PUBLIC_KEY is required}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:?VAPID_PRIVATE_KEY is required}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:noreply@vpsmonitor.local}
+    depends_on:
+      node-exporter:
+        condition: service_started
+    expose:
+      - "3000"
+    volumes:
+      - vpsmonitor-data:/data
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - fetch('http://127.0.0.1:3000/health/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  node-exporter:
+    image: quay.io/prometheus/node-exporter:v1.11.1
+    restart: unless-stopped
+    cpus: 0.25
+    mem_limit: 128m
+    mem_reservation: 32m
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --path.rootfs=/host/root
+      - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|run|host|etc)($$|/)
+      - --web.listen-address=:9100
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host/root:ro,rslave
+    expose:
+      - "9100"
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  vpsmonitor-data:

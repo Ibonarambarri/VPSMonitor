@@ -26,3 +26,47 @@ jobs:
 
       - name: Run tests
         run: swift test
+
+  web:
+    name: Web tests and container
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: Web
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: Web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run web tests
+        run: npm test
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Validate Docker Compose
+        env:
+          APP_ORIGIN: ci-placeholder
+          ADMIN_PASSWORD_HASH: ci-placeholder
+          SESSION_SECRET: ci-placeholder
+          COOLIFY_BASE_URL: ci-placeholder
+          COOLIFY_API_TOKEN: ci-placeholder
+          COOLIFY_DASHBOARD_URL: ci-placeholder
+          VAPID_PUBLIC_KEY: ci-placeholder
+          VAPID_PRIVATE_KEY: ci-placeholder
+          VAPID_SUBJECT: ci-placeholder
+        run: docker compose config --quiet
+
+      - name: Build web container
+        run: docker build --file Dockerfile --tag vpsmonitor-web:ci .

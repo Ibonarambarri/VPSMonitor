@@ -1,6 +1,11 @@
 # VPS Monitor
 
-VPS Monitor es una aplicación nativa para macOS que vive en la barra de menús. Consulta las métricas de un servidor Linux por SSH, muestra el estado de proyectos y recursos de Coolify y permite abrir una sesión SSH interactiva en la terminal elegida.
+VPS Monitor ofrece dos interfaces complementarias para vigilar un servidor Linux y sus recursos de Coolify:
+
+- Una aplicación nativa para macOS que vive en la barra de menús, obtiene métricas por SSH y abre sesiones interactivas en la terminal elegida.
+- Una PWA móvil, pensada para iPhone, que obtiene métricas mediante `node-exporter`, muestra alertas y puede enviar notificaciones Web Push.
+
+La PWA no recibe claves SSH ni expone el token de Coolify al navegador.
 
 ## Funciones principales
 
@@ -12,10 +17,16 @@ VPS Monitor es una aplicación nativa para macOS que vive en la barra de menús.
 - Botón para abrir SSH en Terminal de Apple, Warp o un lanzador personalizado.
 - Inicio automático de la aplicación al entrar en la sesión de macOS.
 - Token de Coolify almacenado en Keychain.
+- Panel móvil con login, temas claro y oscuro y navegación adaptada a pantallas pequeñas.
+- Instalación en la pantalla de inicio del iPhone.
+- Alertas por uso de recursos y estado de servicios.
+- Notificaciones push opcionales con contenido genérico.
 
-La aplicación no aparece en el Dock: se abre desde el icono de servidor de la barra de menús.
+La aplicación macOS no aparece en el Dock: se abre desde el icono de servidor de la barra de menús.
 
 ## Requisitos
+
+### Aplicación macOS
 
 - macOS 13 o posterior.
 - Xcode 15 o posterior, o sus Command Line Tools con Swift 5.9 o posterior.
@@ -25,7 +36,17 @@ La aplicación no aparece en el Dock: se abre desde el icono de servidor de la b
 
 SSH y Coolify se pueden configurar por separado. La aplicación sigue siendo útil aunque solo se active una de las dos integraciones.
 
+### PWA
+
+- Host Linux con Docker Compose o un recurso Docker Compose administrado por Coolify.
+- Origen HTTPS dedicado.
+- Token Coolify limitado al permiso `read`.
+- Node.js 24 para desarrollo y pruebas.
+- iOS 16.4 o posterior para usar Web Push desde la PWA instalada en iPhone.
+
 ## Instalación rápida
+
+### macOS
 
 Desde la raíz de una copia local del repositorio:
 
@@ -39,6 +60,12 @@ No ejecutes el instalador con `sudo`. El script compila en modo `release`, insta
 Después, abre el icono de VPS Monitor en la barra de menús, entra en **Ajustes**, completa las integraciones que quieras usar y pulsa **Guardar y probar**.
 
 La guía [Instalación y configuración](INSTALLATION.md) explica el proceso completo, las terminales compatibles, la desinstalación y la solución de problemas.
+
+### Web e iPhone
+
+El servicio web se despliega desde `Web/docker-compose.yaml`. Antes de publicarlo hay que generar el hash de contraseña, el secreto de sesión, las claves VAPID y configurar un token Coolify de lectura.
+
+Consulta [Instalación de VPS Monitor Web](WEB_INSTALLATION.md) para desplegarlo en Coolify con Docker Compose, validar la configuración, añadirlo a la pantalla de inicio del iPhone y activar notificaciones.
 
 ## Configuración resumida
 
@@ -58,6 +85,12 @@ Indica la URL base de la instancia, sin añadir `/api/v1`, y un token de API de 
 - **Warp:** crea un Tab Config local administrado por VPS Monitor, ejecuta un comando `ssh` reconocible por Warpify y abre una ventana nueva.
 - **Personalizada:** ejecuta un binario indicado por el usuario. Los argumentos se escriben uno por línea y deben contener `{ssh}` en una línea independiente.
 
+### Panel web
+
+La PWA recopila las métricas del host Docker mediante un `node-exporter` interno. El servicio Node.js consulta Coolify, conserva el historial en un volumen y entrega al navegador únicamente datos tras una sesión autenticada.
+
+El botón **Abrir Coolify** utiliza una URL HTTPS configurada en el servidor y nunca añade credenciales. El service worker solo cachea el shell estático; no persiste respuestas privadas de `/api`.
+
 ## Desarrollo
 
 El proyecto usa Swift Package Manager y no necesita dependencias externas:
@@ -70,6 +103,17 @@ swift run VPSMonitor
 
 También puedes abrir `Package.swift` con Xcode y ejecutar el esquema **VPSMonitor**. El repositorio incluye un flujo de GitHub Actions que ejecuta `swift test` en macOS.
 
+Para la aplicación web:
+
+```bash
+cd Web
+npm ci
+npm test
+npm audit --omit=dev
+```
+
+El CI también valida Docker Compose y construye la imagen web.
+
 Hay una prueba de integración opcional que se omite cuando no están definidas sus variables de entorno. Nunca añadas credenciales reales al repositorio ni a un flujo ejecutado desde contribuciones no confiables.
 
 ## Seguridad y privacidad
@@ -80,8 +124,13 @@ Hay una prueba de integración opcional que se omite cuando no están definidas 
 - La recogida de métricas ejecuta comandos de lectura sobre `/proc`, `df` y `uptime`.
 - Los argumentos de la sesión SSH se construyen por separado y se validan antes de lanzar la terminal.
 - La configuración de Warp contiene el comando SSH y se protege con permisos de archivo `0600`.
+- El token de Coolify y las claves VAPID del panel web permanecen en el servidor.
+- La contraseña web se almacena como hash `scrypt` y la sesión usa una cookie segura no accesible desde JavaScript.
+- `node-exporter` no publica su puerto y los contenedores se ejecutan sin capacidades Linux adicionales.
 
 Usa un usuario SSH con privilegios mínimos, una clave dedicada cuando sea posible y un token Coolify limitado a lectura. No publiques salidas de diagnóstico sin revisar antes hosts, usuarios, rutas y nombres de proyectos.
+
+Si la PWA se aloja en el mismo VPS que monitoriza, una caída total también detendrá el panel y sus notificaciones. Complementa ese despliegue con una comprobación externa e independiente.
 
 ## Licencia
 

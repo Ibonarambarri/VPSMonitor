@@ -35,6 +35,12 @@ xcuserdata/
 *.swp
 *.log
 
+# Aplicación web
+Web/node_modules/
+Web/data/
+Web/coverage/
+Web/.vite/
+
 # Variables locales y material sensible
 .env
 .env.*
