@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="VPS Monitor">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
   <meta name="color-scheme" content="light dark">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; font-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
@@ -136,14 +136,13 @@
               <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 5h5v5M19 5l-8 8M19 13v5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/></svg>
             </a>
             <p id="coolify-hint" class="card-hint">Esperando la configuración del servidor.</p>
-          </section>
-
-          <section class="content-section" aria-labelledby="alert-preview-title">
-            <div class="section-heading">
-              <h2 id="alert-preview-title">Alertas</h2>
-              <a class="section-link" href="#/alerts">Ver todas</a>
+            <div class="coolify-projects" aria-labelledby="projects-title">
+              <div class="section-heading projects-heading">
+                <h3 id="projects-title">Proyectos</h3>
+                <p id="projects-summary" class="list-summary"></p>
+              </div>
+              <div id="projects-list" class="projects-list"></div>
             </div>
-            <div id="alert-preview" class="stack-list"></div>
           </section>
 
           <aside id="install-card" class="install-card" hidden>
@@ -154,23 +153,6 @@
             </div>
             <button class="button button-secondary" type="button" data-install>Ver pasos</button>
           </aside>
-        </section>
-
-        <section class="page" data-page="projects" aria-labelledby="page-title" hidden>
-          <div class="page-intro">
-            <p>Proyectos, entornos y recursos descubiertos mediante Coolify.</p>
-          </div>
-          <label class="search-field" for="project-search">
-            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m16 16 4 4"/></svg>
-            <span class="visually-hidden">Buscar proyectos</span>
-            <input id="project-search" type="search" placeholder="Buscar proyectos" autocomplete="off">
-          </label>
-          <div class="segmented-control" role="group" aria-label="Filtrar proyectos">
-            <button type="button" data-project-filter="all" aria-pressed="true">Todos</button>
-            <button type="button" data-project-filter="issues" aria-pressed="false">Con problemas</button>
-          </div>
-          <p id="projects-summary" class="list-summary"></p>
-          <div id="projects-list" class="projects-list"></div>
         </section>
 
         <section class="page" data-page="alerts" aria-labelledby="page-title" hidden>
@@ -250,10 +232,6 @@
           <a href="#/summary" data-route="summary" aria-current="page">
             <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>
             <span>Resumen</span>
-          </a>
-          <a href="#/projects" data-route="projects">
-            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h6l2 2h8v10H4z"/><path d="M4 7V5h6l2 2"/></svg>
-            <span>Proyectos</span>
           </a>
           <a href="#/alerts" data-route="alerts">
             <span class="tab-icon-wrap">

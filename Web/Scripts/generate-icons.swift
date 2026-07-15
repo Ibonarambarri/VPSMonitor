@@ -42,61 +42,50 @@ private func drawIcon(size: Int, compactGlyph: Bool) -> Data? {
     defer { NSGraphicsContext.restoreGraphicsState() }
     context.imageInterpolation = .high
     let canvas = NSRect(x: 0, y: 0, width: side, height: side)
-    let gradient = NSGradient(colors: [color(10, 132, 255), color(0, 86, 214)])!
-    gradient.draw(in: canvas, angle: -54)
+    color(255, 255, 255).setFill()
+    NSBezierPath(rect: canvas).fill()
 
-    let glow = NSBezierPath(ovalIn: NSRect(x: side * 0.06, y: side * 0.48, width: side * 0.9, height: side * 0.74))
-    color(124, 202, 255, alpha: 0.18).setFill()
-    glow.fill()
-
-    let horizontalInset = compactGlyph ? side * 0.235 : side * 0.205
+    let horizontalInset = compactGlyph ? side * 0.26 : side * 0.20
     let rackWidth = side - horizontalInset * 2
-    let unitHeight = side * 0.158
-    let gap = side * 0.055
-    let totalHeight = unitHeight * 3 + gap * 2
+    let unitHeight = side * 0.18
+    let gap = side * 0.10
+    let totalHeight = unitHeight * 2 + gap
     let startY = (side - totalHeight) / 2
-    let radius = max(2, side * 0.038)
+    let radius = max(2, side * 0.04)
+    let strokeWidth = max(1.6, side * 0.042)
 
-    let shadow = NSShadow()
-    shadow.shadowColor = color(0, 34, 92, alpha: 0.22)
-    shadow.shadowBlurRadius = side * 0.025
-    shadow.shadowOffset = NSSize(width: 0, height: -side * 0.012)
-    shadow.set()
-
-    for index in 0..<3 {
+    for index in 0..<2 {
         let y = startY + CGFloat(index) * (unitHeight + gap)
-        let rect = NSRect(x: horizontalInset, y: y, width: rackWidth, height: unitHeight)
+        let inset = strokeWidth / 2
+        let rect = NSRect(
+            x: horizontalInset + inset,
+            y: y + inset,
+            width: rackWidth - strokeWidth,
+            height: unitHeight - strokeWidth
+        )
         let unit = NSBezierPath(roundedRect: rect, xRadius: radius, yRadius: radius)
-        color(255, 255, 255, alpha: 0.97).setFill()
-        unit.fill()
+        unit.lineWidth = strokeWidth
+        color(17, 17, 17).setStroke()
+        unit.stroke()
 
-        NSShadow().set()
-
-        let indicatorSize = max(2.2, side * 0.035)
+        let indicatorSize = max(2, side * 0.037)
         let indicatorRect = NSRect(
-            x: rect.minX + side * 0.072,
+            x: rect.minX + side * 0.095,
             y: rect.midY - indicatorSize / 2,
             width: indicatorSize,
             height: indicatorSize
         )
-        color(10, 132, 255).setFill()
+        color(17, 17, 17).setFill()
         NSBezierPath(ovalIn: indicatorRect).fill()
 
-        let ventHeight = max(1.2, side * 0.012)
-        let ventWidth = side * 0.075
-        let ventGap = side * 0.027
-        for vent in 0..<3 {
-            let ventRect = NSRect(
-                x: rect.maxX - side * 0.09 - ventWidth - CGFloat(vent) * (ventWidth + ventGap),
-                y: rect.midY - ventHeight / 2,
-                width: ventWidth,
-                height: ventHeight
-            )
-            color(0, 70, 165, alpha: 0.45).setFill()
-            NSBezierPath(roundedRect: ventRect, xRadius: ventHeight / 2, yRadius: ventHeight / 2).fill()
-        }
-
-        shadow.set()
+        let ventHeight = max(1.5, side * 0.026)
+        let ventRect = NSRect(
+            x: rect.minX + side * 0.23,
+            y: rect.midY - ventHeight / 2,
+            width: rect.width - side * 0.31,
+            height: ventHeight
+        )
+        NSBezierPath(roundedRect: ventRect, xRadius: ventHeight / 2, yRadius: ventHeight / 2).fill()
     }
 
     return representation.representation(using: .png, properties: [.compressionFactor: 0.95])

@@ -1,5 +1,5 @@
 const CACHE_PREFIX = "vps-monitor-shell-";
-const CACHE_NAME = `${CACHE_PREFIX}v2`;
+const CACHE_NAME = `${CACHE_PREFIX}v3`;
 const SHELL_FILES = [
   "/",
   "/index.html",

@@ -1,7 +1,6 @@
-const PAGES = new Set(["summary", "projects", "alerts", "settings"]);
+const PAGES = new Set(["summary", "alerts", "settings"]);
 const PAGE_TITLES = {
   summary: "Resumen",
-  projects: "Proyectos",
   alerts: "Alertas",
   settings: "Ajustes"
 };
@@ -17,8 +16,6 @@ const state = {
   authenticated: false,
   dashboard: null,
   currentPage: "summary",
-  projectFilter: "all",
-  projectQuery: "",
   refreshing: false,
   serviceWorkerRegistration: null,
   pushSubscription: null,
@@ -67,9 +64,7 @@ const dom = {
   problemCount: document.querySelector("#problem-count"),
   coolifyButton: document.querySelector("#coolify-button"),
   coolifyHint: document.querySelector("#coolify-hint"),
-  alertPreview: document.querySelector("#alert-preview"),
   installCard: document.querySelector("#install-card"),
-  projectSearch: document.querySelector("#project-search"),
   projectsSummary: document.querySelector("#projects-summary"),
   projectsList: document.querySelector("#projects-list"),
   alertsList: document.querySelector("#alerts-list"),
@@ -110,21 +105,6 @@ function bindEvents() {
   dom.logoutButton.addEventListener("click", handleLogout);
   dom.refreshButton.addEventListener("click", () => refreshDashboard(true));
   dom.globalRetry.addEventListener("click", () => refreshDashboard(true));
-  dom.projectSearch.addEventListener("input", () => {
-    state.projectQuery = dom.projectSearch.value.trim().toLocaleLowerCase("es");
-    renderProjects();
-  });
-
-  document.querySelectorAll("[data-project-filter]").forEach((button) => {
-    button.addEventListener("click", () => {
-      state.projectFilter = button.dataset.projectFilter;
-      document.querySelectorAll("[data-project-filter]").forEach((item) => {
-        item.setAttribute("aria-pressed", String(item === button));
-      });
-      renderProjects();
-    });
-  });
-
   document.querySelectorAll("[data-install]").forEach((button) => {
     button.addEventListener("click", handleInstallRequest);
   });
@@ -469,25 +449,15 @@ function renderProjects() {
     return;
   }
 
-  const projects = allProjects.filter((project) => {
-    const matchesQuery = !state.projectQuery
-      || String(project?.name || "").toLocaleLowerCase("es").includes(state.projectQuery);
-    const matchesFilter = state.projectFilter !== "issues"
-      || ["warning", "critical"].includes(projectState(project));
-    return matchesQuery && matchesFilter;
-  });
-
-  dom.projectsSummary.textContent = `${projects.length} de ${allProjects.length} proyectos`;
-  if (projects.length === 0) {
-    const title = allProjects.length === 0 ? "Sin proyectos" : "Sin resultados";
-    const copy = allProjects.length === 0
-      ? "Coolify no ha devuelto ningún proyecto."
-      : "Prueba otra búsqueda o cambia el filtro.";
+  dom.projectsSummary.textContent = `${allProjects.length} ${allProjects.length === 1 ? "proyecto" : "proyectos"}`;
+  if (allProjects.length === 0) {
+    const title = "Sin proyectos";
+    const copy = "Coolify no ha devuelto ningún proyecto.";
     dom.projectsList.append(createEmptyState(title, copy));
     return;
   }
 
-  projects.forEach((project) => dom.projectsList.append(createProjectCard(project)));
+  allProjects.forEach((project) => dom.projectsList.append(createProjectCard(project)));
 }
 
 function createProjectCard(project) {
@@ -563,14 +533,11 @@ function createResourceRow(resource) {
 
 function renderAlerts() {
   const alerts = Array.isArray(state.dashboard?.alerts) ? state.dashboard.alerts : [];
-  dom.alertPreview.replaceChildren();
   dom.alertsList.replaceChildren();
 
   if (alerts.length === 0) {
-    dom.alertPreview.append(createEmptyState("Sin alertas activas", "No hay incidencias que requieran atención."));
     dom.alertsList.append(createEmptyState("Todo tranquilo", "Las alertas aparecerán aquí cuando el monitor detecte una incidencia."));
   } else {
-    alerts.slice(0, 2).forEach((alert) => dom.alertPreview.append(createAlertRow(alert)));
     alerts.forEach((alert) => dom.alertsList.append(createAlertRow(alert)));
   }
 
@@ -694,8 +661,7 @@ function applyRoute(moveFocus) {
   document.title = `${PAGE_TITLES[page]} · VPS Monitor`;
   if (moveFocus && state.authenticated) {
     window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? "auto" : "smooth" });
-    dom.pageTitle.tabIndex = -1;
-    dom.pageTitle.focus({ preventScroll: true });
+    dom.pageContent.focus({ preventScroll: true });
   }
 }
 

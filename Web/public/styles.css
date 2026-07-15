@@ -1,24 +1,25 @@
 :root {
   color-scheme: light dark;
-  --background: #f2f2f7;
+  --background: #f7f7f7;
   --surface: #ffffff;
   --surface-elevated: #ffffff;
-  --surface-muted: #f7f7fa;
+  --surface-muted: #f2f2f2;
   --text: #111114;
   --text-secondary: #62626a;
   --separator: rgba(60, 60, 67, 0.16);
   --separator-strong: rgba(60, 60, 67, 0.28);
-  --accent: #007aff;
-  --accent-pressed: #0062cc;
-  --accent-soft: rgba(0, 122, 255, 0.11);
+  --accent: #111111;
+  --accent-pressed: #333333;
+  --accent-soft: rgba(17, 17, 17, 0.07);
+  --accent-contrast: #ffffff;
   --success: #248a3d;
   --success-soft: rgba(36, 138, 61, 0.12);
   --warning: #a45d00;
   --warning-soft: rgba(255, 149, 0, 0.14);
   --danger: #d70015;
   --danger-soft: rgba(215, 0, 21, 0.11);
-  --purple: #8e5bd9;
-  --shadow: 0 12px 32px rgba(22, 22, 26, 0.08);
+  --purple: #111111;
+  --shadow: 0 10px 28px rgba(0, 0, 0, 0.06);
   --top-safe: env(safe-area-inset-top, 0px);
   --bottom-safe: env(safe-area-inset-bottom, 0px);
   --left-safe: env(safe-area-inset-left, 0px);
@@ -44,16 +45,17 @@
   --text-secondary: #a6a6ad;
   --separator: rgba(235, 235, 245, 0.16);
   --separator-strong: rgba(235, 235, 245, 0.28);
-  --accent: #0a84ff;
-  --accent-pressed: #409cff;
-  --accent-soft: rgba(10, 132, 255, 0.18);
+  --accent: #f5f5f7;
+  --accent-pressed: #ffffff;
+  --accent-soft: rgba(255, 255, 255, 0.1);
+  --accent-contrast: #111111;
   --success: #32d74b;
   --success-soft: rgba(50, 215, 75, 0.16);
   --warning: #ffb340;
   --warning-soft: rgba(255, 179, 64, 0.16);
   --danger: #ff453a;
   --danger-soft: rgba(255, 69, 58, 0.16);
-  --purple: #bf8cff;
+  --purple: #f5f5f7;
   --shadow: 0 14px 38px rgba(0, 0, 0, 0.34);
 }
 
@@ -68,16 +70,17 @@
     --text-secondary: #a6a6ad;
     --separator: rgba(235, 235, 245, 0.16);
     --separator-strong: rgba(235, 235, 245, 0.28);
-    --accent: #0a84ff;
-    --accent-pressed: #409cff;
-    --accent-soft: rgba(10, 132, 255, 0.18);
+    --accent: #f5f5f7;
+    --accent-pressed: #ffffff;
+    --accent-soft: rgba(255, 255, 255, 0.1);
+    --accent-contrast: #111111;
     --success: #32d74b;
     --success-soft: rgba(50, 215, 75, 0.16);
     --warning: #ffb340;
     --warning-soft: rgba(255, 179, 64, 0.16);
     --danger: #ff453a;
     --danger-soft: rgba(255, 69, 58, 0.16);
-    --purple: #bf8cff;
+    --purple: #f5f5f7;
     --shadow: 0 14px 38px rgba(0, 0, 0, 0.34);
   }
 }
@@ -103,7 +106,7 @@ body {
   font-size: 17px;
   line-height: 1.35;
   -webkit-font-smoothing: antialiased;
-  -webkit-tap-highlight-color: rgba(0, 122, 255, 0.14);
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
 }
 
 button,
@@ -177,7 +180,7 @@ h3 {
   padding: 11px 14px;
   border-radius: 10px;
   background: var(--accent);
-  color: white;
+  color: var(--accent-contrast);
   font-weight: 700;
   text-decoration: none;
   transform: translateY(-180%);
@@ -188,8 +191,12 @@ h3 {
 }
 
 :focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--accent) 82%, white);
+  outline: 3px solid color-mix(in srgb, var(--accent) 72%, transparent);
   outline-offset: 3px;
+}
+
+#page-content:focus {
+  outline: none;
 }
 
 .icon {
@@ -238,16 +245,13 @@ h3 {
   min-height: 100dvh;
   place-items: center;
   padding: max(32px, calc(var(--top-safe) + 20px)) max(20px, var(--right-safe)) max(32px, calc(var(--bottom-safe) + 20px)) max(20px, var(--left-safe));
-  background:
-    radial-gradient(circle at 20% 12%, var(--accent-soft), transparent 36%),
-    radial-gradient(circle at 88% 85%, rgba(142, 91, 217, 0.12), transparent 35%),
-    var(--background);
+  background: var(--background);
 }
 
 .auth-card {
   width: min(100%, 390px);
   padding: 28px 22px 22px;
-  border: 1px solid var(--separator);
+  border: 0;
   border-radius: 26px;
   background: color-mix(in srgb, var(--surface) 94%, transparent);
   box-shadow: var(--shadow);
@@ -259,8 +263,8 @@ h3 {
   width: 76px;
   height: 76px;
   margin: 0 auto 20px;
-  border-radius: 18px;
-  box-shadow: 0 9px 24px rgba(0, 122, 255, 0.25);
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .auth-card .eyebrow {
@@ -372,7 +376,7 @@ input::placeholder {
 
 .button-primary {
   background: var(--accent);
-  color: #ffffff;
+  color: var(--accent-contrast);
 }
 
 .button-primary:active:not(:disabled) {
@@ -536,12 +540,10 @@ input::placeholder {
   gap: 17px;
   overflow: hidden;
   padding: 18px;
-  border: 1px solid color-mix(in srgb, var(--accent) 16%, var(--separator));
+  border: 1px solid var(--separator);
   border-radius: 20px;
-  background:
-    radial-gradient(circle at 100% 0%, var(--accent-soft), transparent 50%),
-    var(--surface);
-  box-shadow: 0 8px 28px rgba(0, 122, 255, 0.07);
+  background: var(--surface);
+  box-shadow: none;
 }
 
 .server-hero-heading,
@@ -562,17 +564,17 @@ input::placeholder {
 .server-mark {
   display: grid;
   flex: 0 0 auto;
-  width: 46px;
-  height: 46px;
-  border-radius: 13px;
+  width: 48px;
+  height: 48px;
   place-items: center;
-  background: var(--accent);
-  color: white;
+  background: transparent;
+  color: var(--text);
 }
 
 .server-mark .icon {
-  width: 27px;
-  height: 27px;
+  width: 38px;
+  height: 38px;
+  stroke-width: 2.15;
 }
 
 .server-hero h2 {
@@ -815,6 +817,26 @@ input::placeholder {
   font-size: 0.7rem;
 }
 
+.coolify-projects {
+  display: grid;
+  gap: 9px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--separator);
+}
+
+.projects-heading {
+  margin-bottom: 0;
+}
+
+.projects-heading h3 {
+  font-size: 0.95rem;
+}
+
+.projects-heading .list-summary {
+  text-align: right;
+}
+
 .card-hint {
   margin-top: 9px;
   text-align: center;
@@ -923,7 +945,7 @@ input::placeholder {
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 12px;
-  background: linear-gradient(135deg, var(--accent-soft), var(--surface));
+  background: var(--surface);
 }
 
 .install-card .button {
@@ -937,7 +959,7 @@ input::placeholder {
   border-radius: 12px;
   place-items: center;
   background: var(--accent);
-  color: white;
+  color: var(--accent-contrast);
   font-size: 1.5rem;
 }
 
@@ -1215,7 +1237,7 @@ input::placeholder {
   display: grid;
   width: min(100%, var(--content-width));
   min-height: calc(52px + var(--bottom-safe));
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   margin: 0 auto;
   padding: 3px max(6px, var(--right-safe)) var(--bottom-safe) max(6px, var(--left-safe));
 }
@@ -1340,7 +1362,7 @@ input::placeholder {
   border-radius: 50%;
   place-items: center;
   background: var(--accent);
-  color: white;
+  color: var(--accent-contrast);
   font-size: 0.82rem;
   font-weight: 800;
 }
