@@ -29,3 +29,10 @@ test("the installable icon uses a monochrome server mark", async () => {
   assert.equal(manifest.background_color, "#ffffff");
   assert.equal(manifest.theme_color, "#ffffff");
 });
+
+test("the mobile layout does not enforce a viewport wider than the device", async () => {
+  const css = await readFile(new URL("styles.css", publicURL), "utf8");
+
+  assert.doesNotMatch(css, /min-width:\s*320px/);
+  assert.match(css, /grid-template-columns:\s*repeat\(3, 1fr\)/);
+});
