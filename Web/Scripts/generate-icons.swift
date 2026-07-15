@@ -10,12 +10,12 @@ private struct IconSpec {
 }
 
 private let specs = [
-    IconSpec(filename: "icon-1024.png", size: 1024, compactGlyph: false),
-    IconSpec(filename: "icon-512.png", size: 512, compactGlyph: false),
-    IconSpec(filename: "icon-maskable-512.png", size: 512, compactGlyph: true),
-    IconSpec(filename: "icon-192.png", size: 192, compactGlyph: false),
-    IconSpec(filename: "apple-touch-icon-180.png", size: 180, compactGlyph: false),
-    IconSpec(filename: "favicon-32.png", size: 32, compactGlyph: false),
+    IconSpec(filename: "vpsmonitor-icon-v3-1024.png", size: 1024, compactGlyph: false),
+    IconSpec(filename: "vpsmonitor-icon-v3-512.png", size: 512, compactGlyph: false),
+    IconSpec(filename: "vpsmonitor-icon-v3-maskable-512.png", size: 512, compactGlyph: true),
+    IconSpec(filename: "vpsmonitor-icon-v3-192.png", size: 192, compactGlyph: false),
+    IconSpec(filename: "vpsmonitor-apple-touch-icon-v3-180.png", size: 180, compactGlyph: false),
+    IconSpec(filename: "vpsmonitor-favicon-v3-32.png", size: 32, compactGlyph: false),
 ]
 
 private func color(_ red: CGFloat, _ green: CGFloat, _ blue: CGFloat, alpha: CGFloat = 1) -> NSColor {
@@ -45,16 +45,16 @@ private func drawIcon(size: Int, compactGlyph: Bool) -> Data? {
     color(255, 255, 255).setFill()
     NSBezierPath(rect: canvas).fill()
 
-    let horizontalInset = compactGlyph ? side * 0.26 : side * 0.20
+    let horizontalInset = compactGlyph ? side * 0.285 : side * 0.235
     let rackWidth = side - horizontalInset * 2
-    let unitHeight = side * 0.18
-    let gap = side * 0.10
-    let totalHeight = unitHeight * 2 + gap
+    let unitHeight = side * 0.13
+    let gap = side * 0.055
+    let totalHeight = unitHeight * 3 + gap * 2
     let startY = (side - totalHeight) / 2
-    let radius = max(2, side * 0.04)
-    let strokeWidth = max(1.6, side * 0.042)
+    let radius = max(2, side * 0.03)
+    let strokeWidth = max(1.35, side * 0.029)
 
-    for index in 0..<2 {
+    for index in 0..<3 {
         let y = startY + CGFloat(index) * (unitHeight + gap)
         let inset = strokeWidth / 2
         let rect = NSRect(
@@ -68,9 +68,9 @@ private func drawIcon(size: Int, compactGlyph: Bool) -> Data? {
         color(17, 17, 17).setStroke()
         unit.stroke()
 
-        let indicatorSize = max(2, side * 0.037)
+        let indicatorSize = max(1.8, side * 0.027)
         let indicatorRect = NSRect(
-            x: rect.minX + side * 0.095,
+            x: rect.minX + side * 0.078,
             y: rect.midY - indicatorSize / 2,
             width: indicatorSize,
             height: indicatorSize
@@ -78,11 +78,11 @@ private func drawIcon(size: Int, compactGlyph: Bool) -> Data? {
         color(17, 17, 17).setFill()
         NSBezierPath(ovalIn: indicatorRect).fill()
 
-        let ventHeight = max(1.5, side * 0.026)
+        let ventHeight = max(1.35, side * 0.022)
         let ventRect = NSRect(
-            x: rect.minX + side * 0.23,
+            x: rect.minX + side * 0.18,
             y: rect.midY - ventHeight / 2,
-            width: rect.width - side * 0.31,
+            width: rect.width - side * 0.245,
             height: ventHeight
         )
         NSBezierPath(roundedRect: ventRect, xRadius: ventHeight / 2, yRadius: ventHeight / 2).fill()

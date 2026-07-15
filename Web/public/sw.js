@@ -1,12 +1,12 @@
 const CACHE_PREFIX = "vps-monitor-shell-";
-const CACHE_NAME = `${CACHE_PREFIX}v3`;
+const CACHE_NAME = `${CACHE_PREFIX}v4`;
 const SHELL_FILES = [
   "/",
   "/index.html",
   "/styles.css",
   "/app.js",
-  "/manifest.webmanifest",
-  "/icons/favicon.svg"
+  "/manifest.webmanifest?v=3",
+  "/icons/vpsmonitor-mark-v3.svg"
 ];
 const STATIC_PATHS = new Set(SHELL_FILES.map((path) => new URL(path, self.location.origin).pathname));
 
@@ -89,8 +89,8 @@ self.addEventListener("push", (event) => {
       : `Hay ${count} incidencias activas. Abre VPS Monitor para consultarlas.`;
   event.waitUntil(self.registration.showNotification("VPS Monitor", {
     body,
-    icon: "/icons/icon-192.png",
-    badge: "/icons/icon-192.png",
+    icon: "/icons/vpsmonitor-icon-v3-192.png",
+    badge: "/icons/vpsmonitor-icon-v3-192.png",
     tag: "vps-monitor-alert",
     renotify: true,
     data: { url: "/#/alerts" }

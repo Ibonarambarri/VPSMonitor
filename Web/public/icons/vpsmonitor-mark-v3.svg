@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <title>VPS Monitor</title>
+  <rect width="512" height="512" fill="#fff"/>
+  <g fill="none" stroke="#111" stroke-width="15" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="120" y="128" width="272" height="68" rx="18"/>
+    <rect x="120" y="222" width="272" height="68" rx="18"/>
+    <rect x="120" y="316" width="272" height="68" rx="18"/>
+    <path d="M212 162h124M212 256h124M212 350h124"/>
+  </g>
+  <g fill="#111">
+    <circle cx="165" cy="162" r="8"/>
+    <circle cx="165" cy="256" r="8"/>
+    <circle cx="165" cy="350" r="8"/>
+  </g>
+</svg>
