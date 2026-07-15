@@ -54,7 +54,8 @@ function fixedURL(raw, name, issues, protocols) {
 }
 
 function validateScryptHash(value, issues) {
-  const parts = value.split("$");
+  const separator = value.startsWith("scrypt:") ? ":" : "$";
+  const parts = value.split(separator);
   if (parts.length !== 6 || parts[0] !== "scrypt") {
     issues.push("ADMIN_PASSWORD_HASH must use the supported scrypt format");
     return;

@@ -6,7 +6,7 @@ import test from "node:test";
 import { createHTTPServer, listen } from "../src/http.js";
 
 const password = "correct horse battery staple";
-const passwordHash = "scrypt$16384$8$1$AQEBAQEBAQEBAQEBAQEBAQ$ABPHXRY1WrfMxKXBSXQDp5JR2GGGUi4Mh8TXxB4SUBU";
+const passwordHash = "scrypt:16384:8:1:AQEBAQEBAQEBAQEBAQEBAQ:ABPHXRY1WrfMxKXBSXQDp5JR2GGGUi4Mh8TXxB4SUBU";
 
 async function fixture(t, configOverrides = {}) {
   const publicDirectory = await mkdtemp(path.join(os.tmpdir(), "vpsmonitor-public-"));

@@ -11,7 +11,7 @@ import {
 import { ConfigurationError, loadConfig } from "../src/config.js";
 
 const password = "correct horse battery staple";
-const passwordHash = "scrypt$16384$8$1$AQEBAQEBAQEBAQEBAQEBAQ$ABPHXRY1WrfMxKXBSXQDp5JR2GGGUi4Mh8TXxB4SUBU";
+const passwordHash = "scrypt:16384:8:1:AQEBAQEBAQEBAQEBAQEBAQ:ABPHXRY1WrfMxKXBSXQDp5JR2GGGUi4Mh8TXxB4SUBU";
 
 function environment(overrides = {}) {
   return {
@@ -30,6 +30,7 @@ test("scrypt password hashes verify without storing the password", async () => {
   const encoded = await hashPassword(password, { salt: Buffer.alloc(16, 1) });
   assert.equal(encoded, passwordHash);
   assert.equal(await verifyPassword(password, encoded), true);
+  assert.equal(await verifyPassword(password, encoded.replaceAll(":", "$")), true);
   assert.equal(await verifyPassword("incorrect password", encoded), false);
   assert.equal(await verifyPassword(password, "malformed"), false);
 });

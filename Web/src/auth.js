@@ -15,7 +15,8 @@ function scryptMemory(cost, blockSize) {
 }
 
 function decodeHash(encoded) {
-  const parts = encoded.split("$");
+  const separator = encoded.startsWith("scrypt:") ? ":" : "$";
+  const parts = encoded.split(separator);
   if (parts.length !== 6 || parts[0] !== "scrypt") throw new Error("Malformed password hash");
   const cost = Number(parts[1]);
   const blockSize = Number(parts[2]);
@@ -47,7 +48,7 @@ export async function hashPassword(password, {
     p: parallelism,
     maxmem: scryptMemory(cost, blockSize),
   });
-  return `scrypt$${cost}$${blockSize}$${parallelism}$${salt.toString("base64url")}$${Buffer.from(derived).toString("base64url")}`;
+  return `scrypt:${cost}:${blockSize}:${parallelism}:${salt.toString("base64url")}:${Buffer.from(derived).toString("base64url")}`;
 }
 
 export async function verifyPassword(password, encoded) {
