@@ -27,9 +27,20 @@ enum ProcessRunner {
         process.standardError = stderr
         process.standardInput = input == nil ? FileHandle.nullDevice : stdin
 
+        // The deadline runs independently of the process callbacks.
+        let deadline = Task.detached {
+            try? await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
+            guard !Task.isCancelled else { return }
+            if state.fail(ProcessTimeoutError(seconds: timeout)) { stop(process) }
+        }
+        defer { deadline.cancel() }
+
         return try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<ProcessOutput, Error>) in
-                state.continuation = continuation
+                guard state.install(continuation, onFinish: {
+                    stdout.fileHandleForReading.readabilityHandler = nil
+                    stderr.fileHandleForReading.readabilityHandler = nil
+                }) else { return }
                 stdout.fileHandleForReading.readabilityHandler = { handle in
                     state.append(handle.availableData, toStandardError: false)
                 }
@@ -42,14 +53,8 @@ enum ProcessRunner {
                 do {
                     try process.run()
                 } catch {
-                    stdout.fileHandleForReading.readabilityHandler = nil
-                    stderr.fileHandleForReading.readabilityHandler = nil
                     state.fail(error)
                     return
-                }
-                state.onFinish = {
-                    stdout.fileHandleForReading.readabilityHandler = nil
-                    stderr.fileHandleForReading.readabilityHandler = nil
                 }
                 if let input {
                     let writer = stdin.fileHandleForWriting
@@ -58,12 +63,19 @@ enum ProcessRunner {
                         try? writer.close()
                     }
                 }
-                DispatchQueue.global().asyncAfter(deadline: .now() + timeout) {
-                    if state.fail(ProcessTimeoutError(seconds: timeout)), process.isRunning { process.terminate() }
-                }
             }
         } onCancel: {
-            if state.fail(CancellationError()), process.isRunning { process.terminate() }
+            if state.fail(CancellationError()) { stop(process) }
+        }
+    }
+
+    /// Asks the process to exit and kills it if it ignores the request.
+    private static func stop(_ process: Process) {
+        guard process.isRunning else { return }
+        process.terminate()
+        let pid = process.processIdentifier
+        DispatchQueue.global().asyncAfter(deadline: .now() + 2) {
+            if process.isRunning { kill(pid, SIGKILL) }
         }
     }
 }
@@ -74,8 +86,24 @@ private final class RunState: @unchecked Sendable {
     private var stdoutClosed = false, stderrClosed = false
     private var status: Int32?
     private var finished = false
-    var continuation: CheckedContinuation<ProcessOutput, Error>?
-    var onFinish: (() -> Void)?
+    private var pendingError: Error?
+    private var continuation: CheckedContinuation<ProcessOutput, Error>?
+    private var onFinish: (() -> Void)?
+
+    /// Returns false when the run already failed (timed out or cancelled) before starting.
+    func install(_ continuation: CheckedContinuation<ProcessOutput, Error>, onFinish: @escaping () -> Void) -> Bool {
+        lock.lock()
+        if let pendingError {
+            finished = true
+            lock.unlock()
+            continuation.resume(throwing: pendingError)
+            return false
+        }
+        self.continuation = continuation
+        self.onFinish = onFinish
+        lock.unlock()
+        return true
+    }
 
     func append(_ data: Data, toStandardError: Bool) {
         lock.lock()
@@ -106,6 +134,14 @@ private final class RunState: @unchecked Sendable {
 
     @discardableResult
     func fail(_ error: Error) -> Bool {
+        lock.lock()
+        if continuation == nil && !finished && pendingError == nil {
+            // Not started yet: fail as soon as the continuation is installed.
+            pendingError = error
+            lock.unlock()
+            return true
+        }
+        lock.unlock()
         guard let continuation = take() else { return false }
         continuation.resume(throwing: error)
         return true
