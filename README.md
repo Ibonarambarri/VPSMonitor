@@ -1,9 +1,10 @@
 # VPS Monitor
 
-VPS Monitor es una aplicación nativa para macOS que vive en la barra de menús, vigila un servidor Linux por SSH y sus recursos de Coolify, y abre sesiones interactivas en la terminal elegida.
+VPS Monitor es una aplicación nativa para macOS que vive en la barra de menús, vigila uno o varios servidores Linux por SSH y sus recursos de Coolify, y abre sesiones interactivas en la terminal elegida.
 
 ## Funciones principales
 
+- **Varios VPS:** cada servidor tiene su nombre, acceso SSH, Coolify, terminal y token propios. Todos se vigilan a la vez; el panel muestra un resumen de cada uno y el icono de la barra de menús refleja el peor estado.
 - **En directo:** con el panel abierto, las métricas se actualizan cada 2 segundos; en segundo plano, cada 10 s, 30 s, 1 min o 5 min. Todas las comprobaciones reutilizan una única conexión SSH.
 - CPU (con *iowait* y *steal*), RAM y swap, red de subida y bajada, carga, núcleos y tiempo encendido.
 - Todos los discos montados, los procesos que más CPU consumen, el estado de los contenedores Docker, los servicios systemd fallidos y el aviso de reinicio pendiente.
@@ -13,9 +14,10 @@ VPS Monitor es una aplicación nativa para macOS que vive en la barra de menús,
 - No confunde la falta de red del Mac o el reposo con una caída del servidor.
 - Uso de CPU opcional junto al icono de la barra de menús.
 - Estado de los proyectos, entornos y recursos de Coolify, con enlaces a los recursos publicados.
-- Botón para abrir SSH en Terminal de Apple, Warp o un lanzador personalizado.
+- Botón para abrir SSH en Terminal de Apple, Warp o un lanzador personalizado, y acciones para copiar el host o el comando SSH y abrir Coolify.
+- Ajustes con botones para probar la conexión SSH y Coolify antes de guardar.
 - Inicio automático de la aplicación al entrar en la sesión de macOS.
-- Token de Coolify almacenado en Keychain.
+- Tokens de Coolify almacenados en Keychain, uno por VPS.
 
 La aplicación macOS no aparece en el Dock: se abre desde el icono de servidor de la barra de menús.
 
@@ -43,6 +45,12 @@ No ejecutes el instalador con `sudo`. El script compila en modo `release`, insta
 Después, abre el icono de VPS Monitor en la barra de menús, entra en **Ajustes**, completa las integraciones que quieras usar y pulsa **Guardar y probar**.
 
 La guía [Instalación y configuración](INSTALLATION.md) explica el proceso completo, las terminales compatibles, la desinstalación y la solución de problemas.
+
+## Actualizar desde una versión anterior
+
+La configuración de las versiones 1.1 y 1.2 se conserva al instalar: los VPS, el VPS seleccionado, la terminal, los tokens de Keychain y la última hora de gráficas. Una instalación de la 1.1, con un solo servidor, se convierte en un VPS llamado «Mi VPS».
+
+La app se firma localmente (*ad hoc*), así que macOS la trata como una aplicación distinta tras cada compilación. Al abrir una versión nueva, Keychain puede pedir permiso una vez por token: introduce la contraseña de tu sesión y pulsa **Permitir siempre**.
 
 ## Configuración resumida
 
@@ -78,11 +86,11 @@ Hay una prueba de integración opcional que se omite cuando no están definidas 
 
 ## Seguridad y privacidad
 
-- El token de Coolify se guarda en Keychain bajo el servicio `com.vpsmonitor.credentials`.
+- Los tokens de Coolify se guardan en Keychain bajo el servicio `com.vpsmonitor.credentials.v3`, con la cuenta `coolify-token-<id del VPS>`.
 - El host, usuario, puerto, ruta de clave y preferencias se guardan en `UserDefaults`; no contienen la clave privada, pero pueden revelar detalles de infraestructura.
 - La aplicación referencia la clave SSH en su ubicación original y no la copia dentro del paquete.
 - La recogida de métricas envía por la entrada estándar un script de solo lectura que lee `/proc` y consulta `df`, `systemctl` y `docker ps`. La conexión SSH compartida usa un socket en `~/Library/Caches/vpsm` con permisos `0700`.
-- El historial de métricas (porcentajes y tasas de red, sin nombres de host) se guarda en `~/Library/Application Support/VPSMonitor/history.json`.
+- El historial de métricas de cada VPS (porcentajes y tasas de red, sin nombres de host) se guarda en `~/Library/Application Support/VPSMonitor/`.
 - Los argumentos de la sesión SSH se construyen por separado y se validan antes de lanzar la terminal.
 - La configuración de Warp contiene el comando SSH y se protege con permisos de archivo `0600`.
 Usa un usuario SSH con privilegios mínimos, una clave dedicada cuando sea posible y un token Coolify limitado a lectura. No publiques salidas de diagnóstico sin revisar antes hosts, usuarios, rutas y nombres de proyectos.

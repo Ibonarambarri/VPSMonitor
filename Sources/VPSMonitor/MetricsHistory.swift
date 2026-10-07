@@ -10,6 +10,14 @@ struct MetricSample: Codable, Equatable {
 
     var isReachable: Bool { cpu != nil }
 
+    init(date: Date, cpu: Double?, memory: Double?, receiveRate: Double? = nil, transmitRate: Double? = nil) {
+        self.date = date
+        self.cpu = cpu
+        self.memory = memory
+        self.receiveRate = receiveRate
+        self.transmitRate = transmitRate
+    }
+
     init(date: Date, metrics: ServerMetrics?) {
         self.date = date
         cpu = metrics?.cpuPercent
@@ -49,10 +57,10 @@ struct ChartPoint: Identifiable {
     var id: Date { date }
     let date: Date
     let segment: Int
-    let cpu: Double
-    let memory: Double
-    let receiveRate: Double
-    let transmitRate: Double
+    let cpu: Double?
+    let memory: Double?
+    let receiveRate: Double?
+    let transmitRate: Double?
 }
 
 struct ChartSeries {
@@ -131,9 +139,9 @@ struct MetricsHistory {
             guard !reachable.isEmpty else { continue }
             let date = reachable[reachable.count / 2].date
             if let previousDate, date.timeIntervalSince(previousDate) > gapLimit { segment += 1 }
-            func average(_ keyPath: KeyPath<MetricSample, Double?>) -> Double {
+            func average(_ keyPath: KeyPath<MetricSample, Double?>) -> Double? {
                 let values = reachable.compactMap { $0[keyPath: keyPath] }
-                return values.isEmpty ? 0 : values.reduce(0, +) / Double(values.count)
+                return values.isEmpty ? nil : values.reduce(0, +) / Double(values.count)
             }
             result.points.append(ChartPoint(date: date, segment: segment,
                                             cpu: average(\.cpu), memory: average(\.memory),
@@ -147,11 +155,13 @@ struct MetricsHistory {
 struct MetricsHistoryStore {
     let fileURL: URL
 
-    static var standard: MetricsHistoryStore {
+    static func standard(for profileID: UUID) -> MetricsHistoryStore {
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         return MetricsHistoryStore(fileURL: support.appendingPathComponent("VPSMonitor", isDirectory: true)
-            .appendingPathComponent("history.json"))
+            .appendingPathComponent("history-\(profileID.uuidString.lowercased()).json"))
     }
+
+    var exists: Bool { FileManager.default.fileExists(atPath: fileURL.path) }
 
     func load(now: Date = Date()) -> [MetricSample] {
         guard let data = try? Data(contentsOf: fileURL),

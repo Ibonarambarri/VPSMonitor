@@ -18,7 +18,7 @@ struct VPSMonitorApp: App {
                         .overlay(Circle().stroke(.background, lineWidth: 1))
                         .offset(x: 2, y: 2)
                 }
-                if model.configuration.showCPUInMenuBar, let metrics = model.metrics {
+                if model.preferences.showCPUInMenuBar, let metrics = model.selectedMonitor?.metrics {
                     Text(Formatters.percent(metrics.cpuPercent)).monospacedDigit()
                 }
             }

@@ -36,6 +36,13 @@ struct AlertEngine {
     static let sustainedStealDuration: TimeInterval = 5 * 60
     static let failuresBeforeDown = 2
     static let hysteresis = 5.0
+    /// Boot-time units that commonly fail on VPS images without affecting the server.
+    static let benignUnits: Set<String> = [
+        "systemd-networkd-wait-online.service", "NetworkManager-wait-online.service",
+        "cloud-init.service", "cloud-init-local.service", "cloud-config.service", "cloud-final.service"
+    ]
+
+    static func isBenign(unit: String) -> Bool { benignUnits.contains(unit) }
 
     private(set) var active: [String: MonitorAlert] = [:]
     private var pendingSince: [String: Date] = [:]
@@ -144,9 +151,10 @@ struct AlertEngine {
                                             detail: "\(Self.percent(disk.percent)) ocupado.")
             }
         }
-        if !metrics.failedUnits.isEmpty {
+        let failedUnits = metrics.failedUnits.filter { !Self.isBenign(unit: $0) }
+        if !failedUnits.isEmpty {
             candidates["metric.units"] = Candidate(severity: .warning, title: "Servicios systemd fallidos",
-                                                   detail: metrics.failedUnits.joined(separator: ", "))
+                                                   detail: failedUnits.joined(separator: ", "))
         }
         for container in metrics.containers ?? [] where container.health == .critical {
             candidates["metric.container.\(container.name)"] = Candidate(

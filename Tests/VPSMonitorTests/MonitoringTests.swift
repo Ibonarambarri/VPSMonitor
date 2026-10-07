@@ -50,6 +50,15 @@ final class AlertEngineTests: XCTestCase {
         XCTAssertEqual(recovered.map(\.title), ["Resuelto: Servidor sin respuesta"])
     }
 
+    func testBenignBootUnitsDoNotAlert() {
+        var engine = AlertEngine()
+        var snapshot = snapshot()
+        snapshot.metrics?.failedUnits = ["cloud-init.service", "systemd-networkd-wait-online.service"]
+        XCTAssertTrue(engine.evaluate(snapshot, now: start).isEmpty)
+        snapshot.metrics?.failedUnits.append("backup.service")
+        XCTAssertEqual(engine.evaluate(snapshot, now: start).first?.body, "backup.service")
+    }
+
     func testCoolifyResourceFailureAlerts() {
         var engine = AlertEngine()
         let resource = CoolifyResource(id: "r1", name: "API", type: "Aplicación", status: "exited", url: nil)

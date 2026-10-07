@@ -164,8 +164,9 @@ final class SSHMetricsClientTests: XCTestCase {
         configuration.customTerminalExecutable = "/usr/bin/open"
         configuration.customTerminalArguments = "-a\nGhostty\n--args\n-e\n{ssh}"
 
-        ConfigurationStore(defaults: defaults).save(configuration)
-        let loaded = ConfigurationStore(defaults: defaults).load()
+        let store = ConfigurationStore(defaults: defaults)
+        store.saveProfiles([VPSProfile(name: "Prod", configuration: configuration)])
+        let loaded = try XCTUnwrap(store.loadProfiles().first).configuration
 
         XCTAssertEqual(loaded.sshHost, "server.example.com")
         XCTAssertEqual(loaded.sshTerminal, .custom)
@@ -179,7 +180,7 @@ final class SSHMetricsClientTests: XCTestCase {
         defer { defaults.removePersistentDomain(forName: suiteName) }
         defaults.set("terminal-that-no-longer-exists", forKey: "sshTerminal")
 
-        XCTAssertEqual(ConfigurationStore(defaults: defaults).load().sshTerminal, .appleTerminal)
+        XCTAssertEqual(ConfigurationStore(defaults: defaults).loadProfiles().first?.configuration.sshTerminal, .appleTerminal)
     }
 
     func testCustomTerminalExpandsSSHAsSeparateArguments() throws {

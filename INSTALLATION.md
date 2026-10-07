@@ -87,12 +87,24 @@ También puedes abrir `Package.swift` con Xcode y ejecutar el esquema **VPSMonit
 
 VPS Monitor es un agente de barra de menús y no muestra icono en el Dock. Pulsa su icono de servidor y abre **Ajustes** desde el menú de opciones.
 
+### VPS
+
+La barra lateral de Ajustes lista los VPS configurados. Usa **+** para añadir otro y **−** para eliminar el seleccionado; siempre debe quedar al menos uno. Cada VPS tiene:
+
+- **Nombre:** aparece en el selector del panel y en las notificaciones.
+- Su propio acceso SSH, Coolify, token y terminal.
+- Botones **Probar SSH** y **Probar Coolify**, que comprueban la conexión sin guardar.
+
+En el panel, pulsa el nombre del VPS o su tarjeta de resumen para cambiar de servidor. Todos los VPS se comprueban en segundo plano y cualquiera de ellos puede generar alertas.
+
 ### Coolify
 
 - **URL:** URL base de la instancia, sin `/api/v1`.
 - **Token:** token de API con alcance de lectura.
 
-El token se guarda en Keychain. El resto de valores se guarda en el dominio de preferencias `com.vpsmonitor.app`.
+Cada token se guarda en Keychain. El resto de valores se guarda en el dominio de preferencias `com.vpsmonitor.app`.
+
+Tras instalar una versión nueva, macOS puede pedir permiso una vez por token para que VPS Monitor lo lea. Introduce la contraseña de tu sesión y pulsa **Permitir siempre**: la firma local cambia en cada compilación y Keychain la trata como otra aplicación.
 
 ### Servidor SSH
 
@@ -179,7 +191,7 @@ Para actualizar o reparar una instalación, sitúate en una copia actualizada de
 zsh Scripts/install.sh
 ```
 
-La configuración existente y el token de Keychain no se eliminan durante una reinstalación.
+La configuración existente y los tokens de Keychain no se eliminan durante una reinstalación. Las versiones 1.1 y 1.2 se migran automáticamente, incluidas sus gráficas recientes.
 
 ## 8. Desinstalar
 
@@ -196,7 +208,9 @@ Esto conserva la configuración. Si también quieres borrar todas las preferenci
 ```bash
 defaults delete com.vpsmonitor.app 2>/dev/null || true
 rm -rf "$HOME/Library/Application Support/VPSMonitor" "$HOME/Library/Caches/vpsm"
-security delete-generic-password -s com.vpsmonitor.credentials -a coolify-token 2>/dev/null || true
+for service in com.vpsmonitor.credentials com.vpsmonitor.credentials.v2 com.vpsmonitor.credentials.v3; do
+    while security delete-generic-password -s "$service" >/dev/null 2>&1; do :; done
+done
 rm -f "$HOME/.warp/tab_configs/com_vpsmonitor_app_ssh.toml"
 ```
 

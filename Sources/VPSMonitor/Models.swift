@@ -1,7 +1,7 @@
 import Foundation
 import SwiftUI
 
-enum SSHTerminal: String, CaseIterable, Identifiable {
+enum SSHTerminal: String, CaseIterable, Identifiable, Codable {
     case appleTerminal
     case warp
     case custom
@@ -149,19 +149,88 @@ struct CoolifyProject: Identifiable, Equatable {
     }
 }
 
-struct MonitorConfiguration: Equatable {
-    static let refreshIntervals: [Double] = [10, 30, 60, 300]
-    static let liveRefreshInterval = 2.0
-
+/// Connection settings for one VPS. The JSON keys match version 1.2, so settings
+/// survive both upgrades and downgrades.
+struct MonitorConfiguration: Equatable, Codable {
     var coolifyURL = ""
     var sshHost = ""
     var sshUser = "root"
     var sshPort = "22"
     var sshKeyPath = "~/.ssh/id_ed25519"
-    var refreshInterval = 30.0
     var sshTerminal: SSHTerminal = .appleTerminal
     var customTerminalExecutable = ""
     var customTerminalArguments = ""
+
+    init(coolifyURL: String = "", sshHost: String = "", sshUser: String = "root", sshPort: String = "22",
+         sshKeyPath: String = "~/.ssh/id_ed25519", sshTerminal: SSHTerminal = .appleTerminal,
+         customTerminalExecutable: String = "", customTerminalArguments: String = "") {
+        self.coolifyURL = coolifyURL
+        self.sshHost = sshHost
+        self.sshUser = sshUser
+        self.sshPort = sshPort
+        self.sshKeyPath = sshKeyPath
+        self.sshTerminal = sshTerminal
+        self.customTerminalExecutable = customTerminalExecutable
+        self.customTerminalArguments = customTerminalArguments
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case coolifyURL, sshHost, sshUser, sshPort, sshKeyPath, sshTerminal
+        case customTerminalExecutable, customTerminalArguments, refreshInterval
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let fallback = MonitorConfiguration()
+        coolifyURL = try container.decodeIfPresent(String.self, forKey: .coolifyURL) ?? fallback.coolifyURL
+        sshHost = try container.decodeIfPresent(String.self, forKey: .sshHost) ?? fallback.sshHost
+        sshUser = try container.decodeIfPresent(String.self, forKey: .sshUser) ?? fallback.sshUser
+        sshPort = try container.decodeIfPresent(String.self, forKey: .sshPort) ?? fallback.sshPort
+        sshKeyPath = try container.decodeIfPresent(String.self, forKey: .sshKeyPath) ?? fallback.sshKeyPath
+        sshTerminal = (try? container.decodeIfPresent(SSHTerminal.self, forKey: .sshTerminal)) ?? fallback.sshTerminal
+        customTerminalExecutable = try container.decodeIfPresent(String.self, forKey: .customTerminalExecutable) ?? ""
+        customTerminalArguments = try container.decodeIfPresent(String.self, forKey: .customTerminalArguments) ?? ""
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(coolifyURL, forKey: .coolifyURL)
+        try container.encode(sshHost, forKey: .sshHost)
+        try container.encode(sshUser, forKey: .sshUser)
+        try container.encode(sshPort, forKey: .sshPort)
+        try container.encode(sshKeyPath, forKey: .sshKeyPath)
+        try container.encode(sshTerminal, forKey: .sshTerminal)
+        try container.encode(customTerminalExecutable, forKey: .customTerminalExecutable)
+        try container.encode(customTerminalArguments, forKey: .customTerminalArguments)
+        // Version 1.2 requires this key; the interval is now a global preference.
+        try container.encode(60.0, forKey: .refreshInterval)
+    }
+}
+
+struct VPSProfile: Identifiable, Equatable, Codable {
+    var id: UUID
+    var name: String
+    var configuration: MonitorConfiguration
+
+    init(id: UUID = UUID(), name: String, configuration: MonitorConfiguration = MonitorConfiguration()) {
+        self.id = id
+        self.name = name
+        self.configuration = configuration
+    }
+
+    var displayName: String {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty { return trimmed }
+        return configuration.sshHost.isEmpty ? "VPS sin nombre" : configuration.sshHost
+    }
+}
+
+/// Settings shared by every VPS.
+struct MonitorPreferences: Equatable {
+    static let refreshIntervals: [Double] = [10, 30, 60, 300]
+    static let liveRefreshInterval = 2.0
+
+    var refreshInterval = 30.0
     /// Poll every couple of seconds while the panel is open.
     var liveWhileOpen = true
     var notificationsEnabled = true
