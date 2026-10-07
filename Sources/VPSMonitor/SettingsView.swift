@@ -53,10 +53,27 @@ struct SettingsView: View {
                 }
             }
             Section("Actualización") {
-                LabeledContent("Estado del servidor", value: "Cada 1 minuto")
-                LabeledContent("Gráficas CPU y RAM", value: "Cada 1 minuto")
-                Text("Si una comprobación falla, se repite a los 15 segundos.")
+                Picker("Comprobar el servidor", selection: $configuration.refreshInterval) {
+                    ForEach(MonitorConfiguration.refreshIntervals, id: \.self) { interval in
+                        Text("Cada " + Formatters.interval(interval)).tag(interval)
+                    }
+                }
+                Toggle("En directo con el panel abierto", isOn: $configuration.liveWhileOpen)
+                Text("Con el panel abierto, las métricas se actualizan cada \(Int(MonitorConfiguration.liveRefreshInterval)) s reutilizando una única conexión SSH. Si una comprobación falla, se repite en 15 s como máximo.")
                     .font(.caption).foregroundStyle(.secondary)
+                Toggle("Mostrar CPU en la barra de menús", isOn: $configuration.showCPUInMenuBar)
+            }
+            Section("Alertas") {
+                Toggle("Notificaciones de macOS", isOn: $configuration.notificationsEnabled)
+                thresholdSlider("CPU sostenida", value: $configuration.cpuAlertThreshold)
+                thresholdSlider("Memoria sostenida", value: $configuration.memoryAlertThreshold)
+                thresholdSlider("Disco", value: $configuration.diskAlertThreshold)
+                Text("CPU y memoria avisan tras \(Int(AlertEngine.sustainedLoadDuration / 60)) minutos por encima del umbral. También se avisa si el servidor deja de responder, un recurso de Coolify o un contenedor falla, o hay servicios systemd caídos.")
+                    .font(.caption).foregroundStyle(.secondary)
+                if !AlertNotifier.isAvailable {
+                    Text("Las notificaciones solo funcionan con la app instalada mediante Scripts/install.sh.")
+                        .font(.caption).foregroundStyle(.orange)
+                }
             }
             HStack {
                 Spacer()
@@ -67,7 +84,16 @@ struct SettingsView: View {
                     .keyboardShortcut(.defaultAction)
             }
             .controlSize(.regular)
-        }.formStyle(.grouped).padding().frame(width: 520, height: 560)
+        }.formStyle(.grouped).padding().frame(width: 540, height: 680)
+    }
+
+    private func thresholdSlider(_ title: String, value: Binding<Double>) -> some View {
+        LabeledContent(title) {
+            HStack {
+                Slider(value: value, in: 50...100, step: 5).frame(width: 180)
+                Text(Formatters.percent(value.wrappedValue)).monospacedDigit().frame(width: 44, alignment: .trailing)
+            }
+        }
     }
 
     private func close() {
@@ -103,7 +129,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
             let newWindow = NSWindow(contentViewController: hostingController)
             newWindow.title = "Ajustes de VPS Monitor"
             newWindow.styleMask = [.titled, .closable, .miniaturizable]
-            newWindow.setContentSize(NSSize(width: 520, height: 560))
+            newWindow.setContentSize(NSSize(width: 540, height: 680))
             newWindow.isReleasedWhenClosed = false
             newWindow.delegate = self
             newWindow.center()

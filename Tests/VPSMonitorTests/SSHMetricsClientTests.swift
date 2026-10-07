@@ -3,12 +3,51 @@ import XCTest
 
 final class SSHMetricsClientTests: XCTestCase {
     func testParsesLinuxMetrics() throws {
-        let input = "CPU=37.5\nMEM=4294967296,8589934592\nDISK=75161927680,171798691840\nLOAD=0.80 0.60 0.40\nUPTIME=up 18 days\n"
+        let input = """
+        PROC=101|160|8|my_worker
+        PROC=0|329|1|sh
+        STAT1=cpu  313 0 221 16179 53 0 83 7 0 0
+        STAT2=cpu  414 0 222 16983 153 0 84 107 0 0
+        NET1=1000 500
+        NET2=2001000 1500
+        CORES=10
+        PAGESIZE=4096
+        MEM=8388608 4194304 1048576 524288
+        LOAD=0.80 0.60 0.40
+        UPTIME=93784.50
+        DISK=/dev/vda1|171798691840|75161927680|96636764160|/
+        DISK=/dev/vda1|171798691840|75161927680|96636764160|/etc/hosts
+        DISK=/dev/vdb|1000|900|100|/mnt/data volume
+        REBOOT=1
+        FAILED=backup.service
+        DOCKER=1
+        CTR=api|running|Up 2 hours (unhealthy)
+        CTR=db|running|Up 3 days
+        """
         let metrics = try SSHMetricsClient().parse(input)
-        XCTAssertEqual(metrics.cpuPercent, 37.5)
+        // 1107 ticks elapsed; 904 idle or iowait. Steal counts as busy time, as in top.
+        XCTAssertEqual(metrics.cpuPercent, 203.0 / 1107 * 100, accuracy: 0.01)
+        XCTAssertEqual(metrics.iowaitPercent, 100.0 / 1107 * 100, accuracy: 0.01)
+        XCTAssertEqual(metrics.stealPercent, 100.0 / 1107 * 100, accuracy: 0.01)
         XCTAssertEqual(metrics.memoryPercent, 50, accuracy: 0.01)
-        XCTAssertEqual(metrics.diskPercent, 43.75, accuracy: 0.01)
-        XCTAssertEqual(metrics.uptime, "18 days")
+        XCTAssertEqual(metrics.swapPercent, 50, accuracy: 0.01)
+        XCTAssertEqual(metrics.load, [0.8, 0.6, 0.4])
+        XCTAssertEqual(metrics.uptimeSeconds, 93784.5)
+        XCTAssertEqual(metrics.networkReceiveRate, 2_000_000 / 1.107, accuracy: 1)
+        XCTAssertEqual(metrics.disks.map(\.mountPoint), ["/", "/mnt/data volume"])
+        XCTAssertEqual(metrics.rootDisk?.percent ?? 0, 43.75, accuracy: 0.01)
+        XCTAssertEqual(metrics.fullestDisk?.mountPoint, "/mnt/data volume")
+        XCTAssertEqual(metrics.processes.first?.name, "my_worker")
+        XCTAssertEqual(metrics.processes.first?.memoryBytes, 160 * 4096)
+        XCTAssertTrue(metrics.rebootRequired)
+        XCTAssertEqual(metrics.failedUnits, ["backup.service"])
+        XCTAssertEqual(metrics.containers?.map(\.health), [.critical, .healthy])
+    }
+
+    func testDockerIsUnavailableWithoutMarker() throws {
+        let input = "STAT1=cpu 1 0 1 10\nSTAT2=cpu 2 0 2 20\nMEM=1024 512 0 0\n"
+        XCTAssertNil(try SSHMetricsClient().parse(input).containers)
+        XCTAssertThrowsError(try SSHMetricsClient().parse("MEM=1024 512 0 0\n"))
     }
 
     func testUnhealthyRunningResourceIsCritical() {
@@ -184,39 +223,52 @@ final class SSHMetricsClientTests: XCTestCase {
 
         let command = try SSHMetricsClient().metricsCommand(configuration: configuration, remoteCommand: "uptime")
 
-        XCTAssertEqual(command.arguments, [
+        XCTAssertEqual(Array(command.arguments.prefix(8)), [
             "-o", "BatchMode=yes", "-o", "ConnectTimeout=8",
-            "-p", "22", "--", "monitor@server.example.com", "uptime"
+            "-o", "ServerAliveInterval=10", "-o", "ServerAliveCountMax=2"
         ])
+        XCTAssertEqual(Array(command.arguments.suffix(5)), ["-p", "22", "--", "monitor@server.example.com", "uptime"])
+        XCTAssertTrue(command.arguments.contains("ControlMaster=auto"))
+        XCTAssertEqual(command.arguments.last, "uptime")
 
         configuration.sshUser = "-oProxyCommand=id"
         XCTAssertThrowsError(try SSHMetricsClient().metricsCommand(configuration: configuration, remoteCommand: "uptime"))
     }
 
-    func testLiveConfigurationWhenProvided() async throws {
+    func testLiveCoolifyWhenProvided() async throws {
         let environment = ProcessInfo.processInfo.environment
         guard let token = environment["VPSMONITOR_TEST_COOLIFY_TOKEN"],
-              let baseURL = environment["VPSMONITOR_TEST_COOLIFY_URL"],
-              let sshHost = environment["VPSMONITOR_TEST_SSH_HOST"],
-              let sshKey = environment["VPSMONITOR_TEST_SSH_KEY"] else {
-            throw XCTSkip("Credenciales de integración no configuradas")
+              let baseURL = environment["VPSMONITOR_TEST_COOLIFY_URL"] else {
+            throw XCTSkip("Credenciales de Coolify no configuradas")
         }
 
         let projects = try await CoolifyClient().fetchProjects(baseURL: baseURL, token: token)
         XCTAssertFalse(projects.isEmpty)
         XCTAssertFalse(projects.flatMap(\.resources).isEmpty)
+    }
 
-        let configuration = MonitorConfiguration(coolifyURL: baseURL,
-                                                 sshHost: sshHost,
-                                                 sshUser: "root",
-                                                 sshPort: "22",
-                                                 sshKeyPath: sshKey,
-                                                 refreshInterval: 30,
-                                                 sshTerminal: .appleTerminal,
-                                                 customTerminalExecutable: "",
-                                                 customTerminalArguments: "")
-        let metrics = try await SSHMetricsClient().fetch(configuration: configuration)
+    func testLiveSSHMetricsWhenProvided() async throws {
+        let environment = ProcessInfo.processInfo.environment
+        guard let sshHost = environment["VPSMONITOR_TEST_SSH_HOST"],
+              let sshKey = environment["VPSMONITOR_TEST_SSH_KEY"] else {
+            throw XCTSkip("Servidor SSH de integración no configurado")
+        }
+
+        var configuration = MonitorConfiguration()
+        configuration.sshHost = sshHost
+        configuration.sshUser = environment["VPSMONITOR_TEST_SSH_USER"] ?? "root"
+        configuration.sshPort = environment["VPSMONITOR_TEST_SSH_PORT"] ?? "22"
+        configuration.sshKeyPath = sshKey
+        let client = SSHMetricsClient()
+        let metrics = try await client.fetch(configuration: configuration)
         XCTAssertGreaterThan(metrics.totalMemoryBytes, 0)
-        XCTAssertGreaterThan(metrics.totalDiskBytes, 0)
+        XCTAssertGreaterThan(metrics.cores, 0)
+        XCTAssertGreaterThan(metrics.uptimeSeconds, 0)
+
+        // The second check reuses the shared connection, so it costs little more than the 1 s sample.
+        let start = Date()
+        _ = try await client.fetch(configuration: configuration)
+        XCTAssertLessThan(Date().timeIntervalSince(start), 3)
+        await client.resetConnection(configuration: configuration)
     }
 }

@@ -273,30 +273,12 @@ struct SSHSessionLauncher {
     }
 
     private func runAndWait(executable: String, arguments: [String]) async throws {
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            let process = Process()
-            let stdout = Pipe()
-            let stderr = Pipe()
-            process.executableURL = URL(fileURLWithPath: executable)
-            process.arguments = arguments
-            process.standardOutput = stdout
-            process.standardError = stderr
-            process.terminationHandler = { process in
-                let output = stdout.fileHandleForReading.readDataToEndOfFile()
-                let error = stderr.fileHandleForReading.readDataToEndOfFile()
-                guard process.terminationStatus == 0 else {
-                    let message = String(decoding: error.isEmpty ? output : error, as: UTF8.self)
-                        .trimmingCharacters(in: .whitespacesAndNewlines)
-                    continuation.resume(throwing: ProcessLaunchError(message: message.isEmpty ? "código \(process.terminationStatus)" : message))
-                    return
-                }
-                continuation.resume(returning: ())
-            }
-            do {
-                try process.run()
-            } catch {
-                continuation.resume(throwing: error)
-            }
+        let output = try await ProcessRunner.run(executable: executable, arguments: arguments, timeout: 120)
+        guard output.status == 0 else {
+            let message = output.standardError.isEmpty
+                ? output.standardOutput.trimmingCharacters(in: .whitespacesAndNewlines)
+                : output.standardError
+            throw ProcessLaunchError(message: message.isEmpty ? "código \(output.status)" : message)
         }
     }
 }

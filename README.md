@@ -4,21 +4,26 @@ VPS Monitor es una aplicación nativa para macOS que vive en la barra de menús,
 
 ## Funciones principales
 
-- Métricas de CPU, memoria, disco, carga y tiempo encendido del VPS.
-- Gráficas de CPU y RAM de la última hora.
-- Estado agregado del servidor y de los proyectos, entornos y recursos de Coolify.
-- Enlaces a los recursos publicados por Coolify.
-- Actualización automática cada 60 segundos y reintento a los 15 segundos si una consulta falla.
+- **En directo:** con el panel abierto, las métricas se actualizan cada 2 segundos; en segundo plano, cada 10 s, 30 s, 1 min o 5 min. Todas las comprobaciones reutilizan una única conexión SSH.
+- CPU (con *iowait* y *steal*), RAM y swap, red de subida y bajada, carga, núcleos y tiempo encendido.
+- Todos los discos montados, los procesos que más CPU consumen, el estado de los contenedores Docker, los servicios systemd fallidos y el aviso de reinicio pendiente.
+- Historial de 24 horas que sobrevive a reinicios, con gráficas de 10 min, 1 h, 6 h y 24 h en las que se marcan las caídas.
+- Disponibilidad real de las últimas 24 horas, ponderada por tiempo.
+- Alertas con notificaciones de macOS: servidor sin respuesta, CPU o memoria altas sostenidas, disco casi lleno, *steal* elevado, contenedores o recursos de Coolify caídos y servicios systemd fallidos. También avisa cuando se resuelven.
+- No confunde la falta de red del Mac o el reposo con una caída del servidor.
+- Uso de CPU opcional junto al icono de la barra de menús.
+- Estado de los proyectos, entornos y recursos de Coolify, con enlaces a los recursos publicados.
 - Botón para abrir SSH en Terminal de Apple, Warp o un lanzador personalizado.
 - Inicio automático de la aplicación al entrar en la sesión de macOS.
 - Token de Coolify almacenado en Keychain.
+
 La aplicación macOS no aparece en el Dock: se abre desde el icono de servidor de la barra de menús.
 
 ## Requisitos
 
 - macOS 13 o posterior.
 - Xcode 15 o posterior, o sus Command Line Tools con Swift 5.9 o posterior.
-- Para las métricas: un servidor Linux accesible mediante SSH, con `procfs`, `awk`, `cut`, `uptime` y una versión de `df` compatible con GNU coreutils.
+- Para las métricas: un servidor Linux accesible mediante SSH, con `procfs` y las utilidades POSIX habituales (`sh`, `awk`, `df`, `sort`); funciona también con BusyBox. Docker y systemd son opcionales.
 - Para Coolify: una instancia accesible y un token de API con permisos de solo lectura.
 - Para abrir sesiones: Terminal de Apple, Warp o una terminal que admita un comando de lanzamiento configurable.
 
@@ -76,7 +81,8 @@ Hay una prueba de integración opcional que se omite cuando no están definidas 
 - El token de Coolify se guarda en Keychain bajo el servicio `com.vpsmonitor.credentials`.
 - El host, usuario, puerto, ruta de clave y preferencias se guardan en `UserDefaults`; no contienen la clave privada, pero pueden revelar detalles de infraestructura.
 - La aplicación referencia la clave SSH en su ubicación original y no la copia dentro del paquete.
-- La recogida de métricas ejecuta comandos de lectura sobre `/proc`, `df` y `uptime`.
+- La recogida de métricas envía por la entrada estándar un script de solo lectura que lee `/proc` y consulta `df`, `systemctl` y `docker ps`. La conexión SSH compartida usa un socket en `~/Library/Caches/vpsm` con permisos `0700`.
+- El historial de métricas (porcentajes y tasas de red, sin nombres de host) se guarda en `~/Library/Application Support/VPSMonitor/history.json`.
 - Los argumentos de la sesión SSH se construyen por separado y se validan antes de lanzar la terminal.
 - La configuración de Warp contiene el comando SSH y se protege con permisos de archivo `0600`.
 Usa un usuario SSH con privilegios mínimos, una clave dedicada cuando sea posible y un token Coolify limitado a lectura. No publiques salidas de diagnóstico sin revisar antes hosts, usuarios, rutas y nombres de proyectos.

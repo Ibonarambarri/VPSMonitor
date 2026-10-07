@@ -24,7 +24,10 @@ La monitorización se conecta con `/usr/bin/ssh` y activa estas opciones:
 
 - `BatchMode=yes`, para impedir solicitudes interactivas.
 - `IdentitiesOnly=yes`, para limitar las identidades ofrecidas.
-- `ConnectTimeout=8`, para evitar que una consulta quede bloqueada.
+- `ConnectTimeout=8` y `ServerAliveInterval=10`, para detectar conexiones caídas.
+- `ControlMaster=auto` y `ControlPersist=300`, para reutilizar una sola conexión entre comprobaciones. El socket se crea en `~/Library/Caches/vpsm`.
+
+Cada comprobación tiene además un límite de 25 segundos: una orden remota bloqueada nunca detiene las siguientes.
 
 Antes de configurar la aplicación:
 
@@ -32,9 +35,9 @@ Antes de configurar la aplicación:
 2. Acepta manualmente la clave del host para que quede registrada en `known_hosts`.
 3. Asegura la clave privada con permisos restrictivos, normalmente `0600`.
 4. Si la clave tiene frase de paso, cárgala previamente en un agente SSH accesible desde tu sesión gráfica.
-5. Usa un usuario remoto que pueda leer `/proc/stat`, `/proc/meminfo`, `/proc/loadavg`, ejecutar `df` sobre `/` y ejecutar `uptime`.
+5. Usa un usuario remoto que pueda leer `/proc` y ejecutar `df`. Para ver el estado de los contenedores, ese usuario debe poder ejecutar `docker ps` (por ejemplo, perteneciendo al grupo `docker`); si no puede, la sección se oculta.
 
-El servidor debe ser Linux y disponer de `awk`, `cut`, `uptime` y `df` con las opciones `-B1` y `--output`.
+El servidor debe ser Linux con `procfs` y las utilidades POSIX habituales (`sh`, `awk`, `df`, `sort`, `head`). La app no depende de la shell de inicio de sesión del usuario remoto.
 
 ## 3. Preparar Coolify
 
@@ -98,7 +101,16 @@ El token se guarda en Keychain. El resto de valores se guarda en el dominio de p
 - **Puerto:** entero entre `1` y `65535`.
 - **Ruta de la clave privada:** admite una ruta absoluta o una ruta que empiece por `~`. Se puede dejar vacía si la configuración SSH efectiva ya resuelve una identidad válida.
 
-Pulsa **Guardar y probar**. La vista se actualizará inmediatamente y después lo hará cada 60 segundos. Cuando una consulta falla, la aplicación hace un reintento a los 15 segundos.
+### Actualización y alertas
+
+- **Comprobar el servidor:** cada 10 s, 30 s, 1 min o 5 min mientras el panel está cerrado. Coolify se consulta como mucho cada 30 s.
+- **En directo con el panel abierto:** actualiza cada 2 s mientras el panel está visible.
+- **Mostrar CPU en la barra de menús:** añade el porcentaje de CPU junto al icono.
+- **Notificaciones de macOS** y umbrales de CPU, memoria y disco. CPU y memoria deben superar el umbral durante 3 minutos seguidos; las alertas se resuelven al bajar 5 puntos por debajo del umbral. El servidor se considera caído tras dos comprobaciones fallidas consecutivas.
+
+Las notificaciones requieren la app instalada con `Scripts/install.sh`; con `swift run` no están disponibles. La primera vez macOS pedirá permiso.
+
+Pulsa **Guardar y probar**. La vista se actualizará inmediatamente. Cuando una consulta falla, se repite en 15 segundos como máximo.
 
 ## 6. Elegir la terminal SSH
 
@@ -179,10 +191,11 @@ rm -f "$HOME/Library/LaunchAgents/com.vpsmonitor.app.plist"
 rm -rf "$HOME/Applications/VPSMonitor.app"
 ```
 
-Esto conserva la configuración. Si también quieres borrar todas las preferencias, el token y el Tab Config de Warp, ejecuta además:
+Esto conserva la configuración. Si también quieres borrar todas las preferencias, el historial, el token y el Tab Config de Warp, ejecuta además:
 
 ```bash
 defaults delete com.vpsmonitor.app 2>/dev/null || true
+rm -rf "$HOME/Library/Application Support/VPSMonitor" "$HOME/Library/Caches/vpsm"
 security delete-generic-password -s com.vpsmonitor.credentials -a coolify-token 2>/dev/null || true
 rm -f "$HOME/.warp/tab_configs/com_vpsmonitor_app_ssh.toml"
 ```
@@ -210,7 +223,7 @@ Después comprueba el agente con `launchctl print "gui/$UID/com.vpsmonitor.app"`
 La consulta de métricas no puede mostrar preguntas de contraseña, frase de paso ni confirmación de host. Comprueba la misma conexión con `BatchMode=yes` y sustituye los marcadores en mayúsculas por tus valores:
 
 ```text
-/usr/bin/ssh -o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=8 -p PUERTO -i RUTA_DE_CLAVE USUARIO@HOST true
+/usr/bin/ssh -o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=8 -p PUERTO -i RUTA_DE_CLAVE USUARIO@HOST 'sh -c "head -n 1 /proc/stat"'
 ```
 
 Revisa también:
@@ -252,4 +265,4 @@ Ejecuta la suite local con:
 swift test
 ```
 
-La prueba en vivo se omite salvo que estén definidas `VPSMONITOR_TEST_COOLIFY_TOKEN`, `VPSMONITOR_TEST_COOLIFY_URL`, `VPSMONITOR_TEST_SSH_HOST` y `VPSMONITOR_TEST_SSH_KEY`. No guardes sus valores en archivos versionados ni los expongas a flujos de CI procedentes de código no confiable.
+Las pruebas en vivo se omiten salvo que estén definidas sus variables: `VPSMONITOR_TEST_COOLIFY_URL` y `VPSMONITOR_TEST_COOLIFY_TOKEN` para Coolify; `VPSMONITOR_TEST_SSH_HOST` y `VPSMONITOR_TEST_SSH_KEY` (y opcionalmente `VPSMONITOR_TEST_SSH_USER` y `VPSMONITOR_TEST_SSH_PORT`) para SSH. No guardes sus valores en archivos versionados ni los expongas a flujos de CI procedentes de código no confiable.
